@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import './App.css';
-import { addTodoItem } from './slices/todo';
+import { addTodoItem, deleteTodoItem, toggleTodoItemStatus } from './slices/todo';
 import { useAppSelector, useAppDispatch } from './hooks';
+import { v4 as uuidv4 } from 'uuid';
+import { useGetTodosQuery } from './apis/todoApi';
 
 const Main = styled.div `
   width: 100%;
@@ -75,14 +77,40 @@ const ListItem = styled.li `
   color: #E98EAD;
   /* line-height: 28px; */
   font-weight: 500;
+  display: flex;
+  align-items: center;
   & + li {
     margin-top: 18px;
+  }
+`
+const Checkout = styled.input.attrs({ type: 'checkbox' }) `
+  margin-right: 15px;
+`
+const ItemContent: any = styled.label.attrs({ for: 'check' }) `
+  display: inline-block;
+  flex-grow: 1;
+  text-decoration: ${(props: any) => (props.hadDone ? 'line-through' : 'none')};
+`
+const DeleteButton = styled.button `
+  height: 20px;
+  border: none;
+  background-color: #3A4F7A;
+  font-size: 10px;
+  color: #fff;
+  border-radius: 5px;
+  margin-left: auto;
+  cursor: pointer;
+  &:hover {
+    /* color: #E98EAD; */
+    background-color: #FFC6D3;
   }
 `
 
 function App() {
   const { todoList } = useAppSelector(state => state.todoReducer);
   const dispatch = useAppDispatch();
+  const { data, error, isLoading } = useGetTodosQuery('1');
+  console.log('dd', data);
   const [ todoListItem, setTodoListItem ] = useState<string>('');
   const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTodoListItem(e.target.value)
@@ -92,8 +120,17 @@ function App() {
       alert('尚未填寫待辦事項！');
       return;
     }
-    dispatch(addTodoItem(todoListItem));
+    dispatch(addTodoItem({
+      id: uuidv4(),
+      todoItemContent: todoListItem
+    }));
     setTodoListItem('');
+  };
+  const deleteTodoListItem = (item: any) => {
+    dispatch(deleteTodoItem(item));
+  };
+  const toggleTodoListItem = (item: any) => {
+    dispatch(toggleTodoItemStatus(item));
   };
   return (
     <Main>
@@ -105,7 +142,11 @@ function App() {
           <TodoListContainer>
             {
               todoList.map((item) => (
-                <ListItem key={item}>- { item }</ListItem>
+                <ListItem key={item.id}>
+                  <Checkout id="check" onClick={() => toggleTodoListItem(item)} />
+                  <ItemContent hadDone={item.hadDone}>{ item.todoItemContent }</ItemContent>
+                  <DeleteButton onClick={() => deleteTodoListItem(item)}>X</DeleteButton>
+                </ListItem>
               ))
             }
           </TodoListContainer>
